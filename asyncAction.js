@@ -1,5 +1,8 @@
 const redux = require('redux')
 const createStore = redux.createStore
+const applyMiddleware = redux.applyMiddleware
+const thunkMiddleware = require('redux-thunk').default
+const axios = require('axios')
 
 const intialFetch = {
     loading:false,
@@ -10,18 +13,18 @@ const  Fetch_Request =  'Fetch_Request'
 const  Fetch_Success =  'Fetch_Request'
 const  Fetch_Error =  'Fetch_Error'
 
-const fetchUserRequest = () => {
+const fetchUsersRequest = () => {
 return {
     type:Fetch_Request
 }
 }
-const fetchUserSuccess = users => {
+const fetchUsersSuccess = users => {
     return {
         type:Fetch_Success,
         payload:users
     }
 }
-const fetchUserError = error => {
+const fetchUsersError = error => {
     return {
         type:Fetch_Error,
         payload:error
@@ -30,19 +33,17 @@ const fetchUserError = error => {
 
 const reducer = (state=intialFetch,action)=> {
     switch(action.type){
-        case fetchUserRequest: return {
+        case Fetch_Request: return {
             ...state,
             loading:true,
             }
-        case fetchUserSuccess :
+        case Fetch_Success :
           return {
-            ...state,
             loading:false,
             users:action.payload,
             error: ''
         }
-        case fetchUserError: return {
-            ...state,
+        case Fetch_Error: return {
             loading:false,
             users:[],
             error:action.payload
@@ -52,5 +53,19 @@ const reducer = (state=intialFetch,action)=> {
     }
 
 
-
-const store  = createStore(reducer);
+const fetchUser = () => {
+    return function(dispatch) {
+        dispatch(fetchUsersRequest())
+axios.get('https://jsonplaceholder.typicode.com/users')
+.then(response => {
+    const users = response.data.map(user=>user.id)
+    dispatch(fetchUsersSuccess(users))
+})
+.catch(error => {
+    dispatch(fetchUsersError(error.message))
+})
+    }
+}
+const store  = createStore(reducer,applyMiddleware(thunkMiddleware));
+store.subscribe(()=>{console.log(store.getState())});
+store.dispatch(fetchUser())
